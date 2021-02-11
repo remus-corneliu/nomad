@@ -1,0 +1,83 @@
+version: "2.1"
+
+networks:
+  nomad-local:
+    driver: bridge
+    name: nomad-local
+    ipam:
+      driver: default
+      config:
+        # Network Addr : 192.168.0.0
+        # Total Hosts  : 14
+        # Usable Hosts : 12
+        # Gateway      : 192.168.0.1
+        # First Host   : 192.168.0.2
+        # Last Host    : 192.168.0.13
+        # Broadcast    : 192.168.0.15
+        - subnet: 192.168.0.0/28
+
+services:
+  nomad-server:
+    build:
+      context: .
+      dockerfile: ./nomad.server.dockerfile
+    image: nomad:server
+    container_name: nomad-server
+    networks:
+      nomad-local:
+        ipv4_address: 192.168.0.2
+    ports:
+      - 8811:4646
+      - 8812:4647
+      - 8813:4648/udp
+    restart: unless-stopped
+    # environment:
+    #   NOMAD_LOCAL_CONFIG: |
+    #     name       = "server1"
+    #     datacenter = "RO"
+    #     region     = "EU-EST"
+    #     data_dir = "/nomad/data/"
+    #     bind_addr = "0.0.0.0"
+    #     advertise {
+    #       http = "{{ GetPrivateIP }}:4646"
+    #       rpc  = "{{ GetPrivateIP }}:4647"
+    #       serf = "{{ GetPrivateIP }}:4648"
+    #     }
+    #     ports {
+    #       http = 4646
+    #       rpc  = 4647
+    #       serf = 4648
+    #     }
+    #     server {
+    #       enabled          = true,
+    #       bootstrap_expect = 1
+    #     }
+    command: "agent -config=/nomad/config/nomad.server.hcl"
+
+  nomad-slave-1:
+    build:
+      context: .
+      dockerfile: ./nomad.slave.dockerfile
+    image: nomad:slave
+    container_name: nomad-slave-1
+    depends_on:
+      - nomad-server
+    networks:
+      nomad-local:
+        ipv4_address: 192.168.0.3
+    restart: unless-stopped
+    command: "agent -config=/nomad/config/nomad.slave.hcl"
+
+  # nomad-slave-2:
+  #   build:
+  #     context: .
+  #     dockerfile: ./nomad.slave.dockerfile
+  #   image: nomad:slave
+  #   container_name: nomad-node-2
+  #   depends_on:
+  #     - nomad-server
+  #   networks:
+  #     nomad-local:
+  #       ipv4_address: 192.168.0.3
+  #   restart: unless-stopped
+  #   command: "agent -config-file=nomad.slave.hcl"
