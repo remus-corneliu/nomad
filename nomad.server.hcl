@@ -1,8 +1,8 @@
 log_level = "DEBUG"
 
 name       = "server1"
-region     = "EU-EST"
-datacenter = "RO"
+region     = "EU"
+datacenter = "1"
 
 data_dir   = "/nomad/data/"
 
